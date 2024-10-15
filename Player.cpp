@@ -114,20 +114,20 @@ void Player::handleCollisions(sf::Time& deltaTime) {
     std::vector<layer> collisionArrays = world.getColliders();
 
     //limit collision checks to closest tiles
-    sf::Vector2i truncatedPos = sf::Vector2i(shape.getPosition().x / world.getTileSize(), shape.getPosition().y / world.getTileSize());
+    sf::Vector2i truncatedPos = sf::Vector2i((int)shape.getPosition().x / world.getTileSize(), (int)shape.getPosition().y / world.getTileSize());
     
     std::vector<std::vector<std::pair<int, float>>> collisionTiles;
     collisionTiles.resize(collisionArrays.size());
 
     //loop through to find all tiles with possible collision
-    for (int i = 0; i < collisionArrays.size();i++) {
+    for (int i = 0; i < (int)collisionArrays.size();i++) {
         layer collisionLayer = collisionArrays[i];
 
         for (int y = -2; y < 3; y++) {
             for (int x = -2; x < 3; x++) {
                 int arrayPos = (y + truncatedPos.y) * world.getWidth() + x + truncatedPos.x;
 
-                if (arrayPos < 0 || arrayPos >= collisionLayer.collisionArray.size())continue;
+                if (arrayPos < 0 || arrayPos >= (int)collisionLayer.collisionArray.size())continue;
 
                 if (collisionLayer.collisionArray[arrayPos] == 1) {
 

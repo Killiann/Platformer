@@ -8,7 +8,7 @@ World::World(){
 
 World::World(std::string fileName, sf::Texture texture): tilemapTexture(texture) {
 	block.setFillColor(sf::Color::Green);
-	block.setSize(sf::Vector2f(tileSize, tileSize));
+	block.setSize(sf::Vector2f((float)tileSize, (float)tileSize));
 
 	std::ifstream file(fileName);
 	json mapData = json::parse(file);
@@ -16,11 +16,11 @@ World::World(std::string fileName, sf::Texture texture): tilemapTexture(texture)
 	tileSize = mapData["tileSize"];
 	mapWidth = mapData["mapWidth"];
 	mapHeight = mapData["mapHeight"];
-	for (int i = 0; i < mapData["layers"].size(); i++) {
+	for (int i = 0; i < (int)mapData["layers"].size(); i++) {
 		layer newLayer;
 		newLayer.name = mapData["layers"][i]["name"];
 		newLayer.collider = mapData["layers"][i]["collider"];
-		for (int t = 0; t < mapData["layers"][i]["tiles"].size(); t++) {
+		for (int t = 0; t < (int)mapData["layers"][i]["tiles"].size(); t++) {
 			tile newTile;
 			
 			std::string tileID = mapData["layers"][i]["tiles"][t]["id"];
@@ -65,7 +65,7 @@ void World::render(sf::RenderWindow& window) {
 					tileSprite.setTexture(tilemapTexture);
 					tileSprite.setTextureRect({ tileX * tileSize, tileY * tileSize, tileSize, tileSize });
 
-					tileSprite.setPosition(x * tileSize, y * tileSize);
+					tileSprite.setPosition((float)(x * tileSize), (float)(y * tileSize));
 
 					window.draw(tileSprite);
 				}

@@ -2,6 +2,7 @@
 #include <iostream>
 #include "Player.h"
 #include "World.h"
+#include "Inventory.h"
 
 class Game
 {
@@ -13,6 +14,7 @@ private:
     void processEvents();
     void update(sf::Time);
     void render();
+    void handleGameStates(sf::Keyboard::Key);
 
 private:
     //Engine
@@ -26,12 +28,21 @@ private:
     sf::Time TimePerFrame;
     const float updateFrameRate{ 60 };
 
+    enum GameState {
+        PLAYING,
+        PAUSED        
+    };
+
+    //Game
+    GameState currentState;  
     Player player;
     World world;
+    Inventory inventory;
 
     //resources
     sf::Font pixelFont;
     sf::Texture tileMap;
+    sf::Texture inventoryTileMap;
 
     //UI
 
@@ -55,25 +66,28 @@ Game::Game() :
 
     //initialisation    
     TimePerFrame = sf::seconds(1.f / updateFrameRate);    
+    currentState = PLAYING;
 
-    //resources
-    if (!pixelFont.loadFromFile("resources/fonts/pixel_font.ttf")) {
-        std::cout << "Could not load pixel_font.ttf\n";
-    }
-    else
-        std::cout << "Loaded pixel_font.ttf\n";
+    //load resources
+    if (!pixelFont.loadFromFile("resources/fonts/pixel_font.ttf")) 
+        std::cout << "Could not load pixel_font.ttf\n";    
+    else std::cout << "Loaded pixel_font.ttf\n";
 
-    if (!tileMap.loadFromFile("resources/tilemaps/spritesheet.png")) {
-        std::cout << "Could not load tilemap (spritesheet.png)\n";
-    }
+    if (!tileMap.loadFromFile("resources/tilemaps/spritesheet.png")) 
+        std::cout << "Could not load tilemap (spritesheet.png)\n";    
     else std::cout << "Loaded tilemap (spritesheet.png)\n"; 
-
-    world = World("resources/maps/map.json", tileMap);
-
+    
+    if (!inventoryTileMap.loadFromFile("resources/inventory/spritesheet.png"))
+        std::cout << "Could not load inventory tilemap (spritesheet.png)\n";
+    else std::cout << "Loaded inventory tilemap (spritesheet.png)\n";   
+ 
     //UI
 
     view = sf::View(sf::FloatRect(0, 0, 192 * 3, 108 * 3));
-    mWindow.setView(view);
+    mWindow.setView(view);    
+
+    world = World("resources/maps/map.json", tileMap);
+    inventory = Inventory(inventoryTileMap, mWindow);
 
     frameCounter.setFont(pixelFont);
     frameCounter.setString("000");
@@ -113,34 +127,74 @@ void Game::run()
 void Game::processEvents()
 {
     sf::Event event;
+    sf::Mouse mouse;
+    sf::Vector2i mousePosWindow = mouse.getPosition(mWindow);
+    
+    inventory.update(mousePosWindow);
+
     while (mWindow.pollEvent(event))
     {
         switch (event.type) {
         case sf::Event::KeyPressed:
             player.processInput(event.key.code, true);
+            inventory.handleKeyPress(event);
             break;
         case sf::Event::KeyReleased:
             player.processInput(event.key.code, false);
+            handleGameStates(event.key.code);
+            break;
+        case sf::Event::MouseButtonPressed:
+            inventory.handleClick(event);
+            break;
+        case sf::Event::MouseWheelScrolled:
+            inventory.handleScroll(event);
             break;
         case sf::Event::Closed:
             mWindow.close();
             break;
         }        
-    }
+    }    
 }
 
 void Game::update(sf::Time deltaTime)
 {
-    //pVelocity = sf::Vector2f(0.f, 0.f);
-    player.update(deltaTime);
+    if (currentState == PLAYING) {
+        player.update(deltaTime);
+    }
+    else if (currentState = PAUSED) {
+
+    }
 }
 
 void Game::render()
 {
     mWindow.clear(sf::Color::White);    
+    
+    mWindow.setView(view);
     world.render(mWindow);
     player.render(mWindow);
-    //UI
-    //mWindow.draw(frameCounter);
+    
+    mWindow.setView(mWindow.getDefaultView());
+    inventory.Render(mWindow);
     mWindow.display();
+}
+
+void Game::handleGameStates(sf::Keyboard::Key key) {
+    if (key == sf::Keyboard::I) {
+        //open inventory        
+        if (currentState == PAUSED && inventory.IsOpen()) {
+            currentState = PLAYING;
+            inventory.Close();
+        }
+        else if (currentState == PLAYING && !inventory.IsOpen()) {
+            currentState = PAUSED;
+            inventory.Open();
+        }
+    }
+    //unpause with ESC
+    if (key == sf::Keyboard::Escape && currentState == PAUSED) {
+        currentState = PLAYING;
+        if (inventory.IsOpen()) inventory.Close();
+    }
+
 }
