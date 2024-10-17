@@ -4,17 +4,19 @@
 #include "World.h"
 #include "Inventory.h"
 
+
 class Game
 {
 public:
     Game();
+    ~Game();
     void run();
 
 private:
     void processEvents();
     void update(sf::Time);
     void render();
-    void handleGameStates(sf::Keyboard::Key);
+    void handleGameStates(sf::Keyboard::Key);    
 
 private:
     //Engine
@@ -45,6 +47,12 @@ private:
     sf::Texture inventoryTileMap;
 
     //UI
+
+    //possible items
+    Item* i_sword;
+    Item* i_hoe;
+    Item* i_pickaxe;
+    Item* i_axe;
 
     //FPS
     float lastTime{ 0 };
@@ -86,8 +94,31 @@ Game::Game() :
     view = sf::View(sf::FloatRect(0, 0, 192 * 3, 108 * 3));
     mWindow.setView(view);    
 
+    sf::Sprite swordSprite(inventoryTileMap);
+    swordSprite.setTextureRect(sf::IntRect(49, 134, 16, 16));
+    i_sword = new Item(1, "sword", "A basic melee weapon.", swordSprite);
+
+    sf::Sprite hoeSprite(inventoryTileMap);
+    hoeSprite.setTextureRect(sf::IntRect(1, 134, 16, 16));
+    i_hoe = new Item(2, "hoe", "A tool used for tilling soil.", hoeSprite);
+
+    sf::Sprite pickaxeSprite(inventoryTileMap);
+    pickaxeSprite.setTextureRect(sf::IntRect(17, 134, 16, 16));
+    i_pickaxe = new Item(3, "pickaxe", "A tool used for breaking rocks.", pickaxeSprite);
+
+    sf::Sprite axeSprite(inventoryTileMap);
+    axeSprite.setTextureRect(sf::IntRect(33, 134, 16, 16));
+    i_axe = new Item(4, "axe", "A tool used for cutting wood.", axeSprite);
+
     world = World("resources/maps/map.json", tileMap);
     inventory = Inventory(inventoryTileMap, mWindow);
+
+    inventory.addItem(i_axe);
+    inventory.addItem(i_hoe);
+    inventory.addItem(i_pickaxe);
+    for (int i = 0; i < 34; i++) {
+        inventory.addItem(i_sword);
+    }
 
     frameCounter.setFont(pixelFont);
     frameCounter.setString("000");
@@ -162,7 +193,9 @@ void Game::update(sf::Time deltaTime)
         player.update(deltaTime);
     }
     else if (currentState = PAUSED) {
-
+        // check if inventory was closed from inside
+        if (inventory.getOpen() == false)
+            currentState = PLAYING;
     }
 }
 
@@ -182,11 +215,11 @@ void Game::render()
 void Game::handleGameStates(sf::Keyboard::Key key) {
     if (key == sf::Keyboard::I) {
         //open inventory        
-        if (currentState == PAUSED && inventory.IsOpen()) {
+        if (currentState == PAUSED && inventory.getOpen()) {
             currentState = PLAYING;
             inventory.Close();
         }
-        else if (currentState == PLAYING && !inventory.IsOpen()) {
+        else if (currentState == PLAYING && !inventory.getOpen()) {
             currentState = PAUSED;
             inventory.Open();
         }
@@ -194,7 +227,15 @@ void Game::handleGameStates(sf::Keyboard::Key key) {
     //unpause with ESC
     if (key == sf::Keyboard::Escape && currentState == PAUSED) {
         currentState = PLAYING;
-        if (inventory.IsOpen()) inventory.Close();
+        if (inventory.getOpen()) inventory.Close();
     }
 
+}
+
+//deconstructor
+Game::~Game() {
+    delete(i_sword);
+    delete(i_hoe);
+    delete(i_pickaxe);
+    delete(i_axe);
 }

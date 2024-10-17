@@ -18,5 +18,8 @@ public:
 	inline const std::string getName() { return name; }
 	inline const std::string getDescription() { return description; }
 	inline const sf::Sprite getSprite() { return sprite; }
+
+	inline void setScale(float scale) { sprite.setScale(scale, scale); }
+	inline void setPosition(sf::Vector2f position) { sprite.setPosition(position); }
 };
 

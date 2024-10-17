@@ -5,21 +5,46 @@ Inventory::Inventory(){}
 void Inventory::resetHotbarPositions() {
 	hotBarPos = hotbar_bg.getPosition();
 	hotBarSize = hotbar_bg.getTextureRect().getSize();
-	hotBarSize.x *= viewScale;
-	hotBarSize.y *= viewScale;
+	hotBarSize.x *= (int)viewScale;
+	hotBarSize.y *= (int)viewScale;
 
-	hotBarSize.x -= viewScale * 2;
-	hotBarSize.y -= viewScale * 2;
+	hotBarSize.x -= (int)viewScale * 2;
+	hotBarSize.y -= (int)viewScale * 2;
 
-	hotBarPos.x += viewScale;
-	hotBarPos.y += viewScale;			
+	hotBarPos.x += (int)viewScale;
+	hotBarPos.y += (int)viewScale;	
+
+	for (size_t i = 0; i < items.size(); i++) {
+		if (isInToolbar(i)) {
+			//top bar				
+			items[i].inv_sprite.setPosition(sf::Vector2f(hotBarPos.x + i * 16 * viewScale, hotBarPos.y));
+		}
+		else {
+			//rest
+		}
+	}
+}
+
+void Inventory::resetSpritePositions() {
+	//loop through items and set positions depending on ID
+	for (size_t i = 0; i < items.size(); i++) {
+		//toolbar items
+		if (isInToolbar(i)) {
+			items[i].inv_sprite.setPosition(sf::Vector2f(hotBarPos.x + i * 16 * viewScale, hotBarPos.y));
+		}
+		else {
+			//rest of inv.
+			int xPos = bagBgPos.x + ((i - inv_width) % inv_width) * 16 * (int)viewScale;
+			int yPos = bagBgPos.y + ((i - inv_width) / inv_width) * 16 * (int)viewScale;
+			items[i].inv_sprite.setPosition(sf::Vector2f(xPos, yPos));
+		}
+	}
 }
 
 Inventory::Inventory(sf::Texture& texture, sf::RenderWindow& window){
 	//init background textures
 	
 	background = sf::Sprite(texture, sf::IntRect(0, 0, 208, 80));
-	//background.setOrigin(background.getTextureRect().width / 2.f, background.getTextureRect().height / 2.f);
 	background.setPosition(
 		window.getSize().x / 2.f - (background.getTextureRect().width / 2) * viewScale,		
 		window.getSize().y / 2.f - (background.getTextureRect().height /2) * viewScale);
@@ -42,38 +67,70 @@ Inventory::Inventory(sf::Texture& texture, sf::RenderWindow& window){
 	hotbar_bg.setScale(viewScale, viewScale);
 	bag_bg.setScale(viewScale, viewScale);
 	selectionBox.setScale(viewScale, viewScale);
-	selected.setScale(viewScale, viewScale);
-
-	resetHotbarPositions();
+	selected.setScale(viewScale, viewScale);	
 
 	bagBgPos = bag_bg.getPosition();
 	bagBgSize = bag_bg.getTextureRect().getSize();
 
-	bagBgSize.x *= viewScale;
-	bagBgSize.y *= viewScale;
+	bagBgSize.x *= (int)viewScale;
+	bagBgSize.y *= (int)viewScale;
 
-	bagBgSize.x -= viewScale * 2;
-	bagBgSize.y -= viewScale * 2;
+	bagBgSize.x -= (int)viewScale * 2;
+	bagBgSize.y -= (int)viewScale * 2;
 
-	bagBgPos.x += viewScale;
-	bagBgPos.y += viewScale;
+	bagBgPos.x += (int)viewScale;
+	bagBgPos.y += (int)viewScale;
+
+	backgroundPosition = background.getPosition();
+	backgroundSize = background.getTextureRect().getSize();
+	backgroundSize.x *= (int)viewScale;
+	backgroundSize.y *= (int)viewScale;
+
+	resetHotbarPositions();
+	resetSelected();
+
+	//fill inventory with empty items
+	for(size_t i = 0; i< maxItems; i++){
+		inventoryItem empty;
+		items.push_back(empty);
+	}
 }
 
-void Inventory::AddItem(Item newItem) {
-	if ((int)items.size() < maxItems) {
-		items.push_back(newItem);
+void Inventory::addItem(Item* n_item) {
+	
+	//check for max items
+	if (itemCount < maxItems) {				
+		n_item->setScale(viewScale);		 		
+		inventoryItem empty;
+
+		//add item to first empty 
+		for (size_t i = 0; i < maxItems;i++) {
+			if (items[i].isEmpty()) {
+				inventoryItem newItem(i, n_item);
+
+				items[i] = newItem;
+				itemCount++;
+				break;
+			}
+		}		
+
+		//maybe in future this could be changed if a lot of items flow into the inventory at once
+		resetSpritePositions();
 	}
 	else {
 		//error 
-		std::cout << "Max items reached. Could not add " << newItem.getName() << ".\n";
+		std::cout << "Max items reached. Could not add " << n_item->getName() << ".\n";
 	}
 }
 
-void Inventory::RemoveItem(int id) {
+void Inventory::removeItem(int id) {
 	//needs to be tested
 	for (int i = 0; i < (int)items.size(); i++) {
-		if (items[i].getId() == id)
-			items.erase(items.begin() + i);
+		if (items[i].item->getId() == id) {
+			inventoryItem empty;
+			items[i] = empty;
+			itemCount--;
+		}		
 	}
 }
 
@@ -90,34 +147,37 @@ void Inventory::update(sf::Vector2i& mousePos) {
 	
 	//for toolbar	
 	renderSelection = false;
-	tempSelected = -1;
+	hoveredItem = -1;
+
+	//used later in handle click, could be better?
+	mousePosition = mousePos;
 
 	if (pointInRect(mousePos, hotBarPos, hotBarSize)) {
 		//mouse is within hotbar bounids
 		renderSelection = true;
 		
 		//ID of selected item
-		int xPosition = (mousePos.x - (hotBarPos.x)) / 16 / viewScale;
-		tempSelected = xPosition;
+		int xPosition = (mousePos.x - ((int)hotBarPos.x)) / 16 / (int)viewScale;
+		hoveredItem = xPosition;
 
 		selectionBox.setPosition(
-			hotBarPos.x + xPosition * ((hotBarSize.x / i_width)),
+			hotBarPos.x + xPosition * ((hotBarSize.x / inv_width)),
 			hotBarPos.y);
 	}
 
 	//for rest of inventory	
 	if (pointInRect(mousePos, bagBgPos, bagBgSize) && isOpen) {
 		//mouse is in bg bounds
-		renderSelection = true;
+		renderSelection = true;		
 
 		//combined to make ID of selection
-		int xPosition = (mousePos.x - (bagBgPos.x)) / 16 / viewScale;
-		int yPosition = (mousePos.y - (bagBgPos.y)) / 16 / viewScale;
+		int xPosition = (mousePos.x - ((int)bagBgPos.x)) / 16 / (int)viewScale;
+		int yPosition = (mousePos.y - ((int)bagBgPos.y)) / 16 / (int)viewScale;
 
-		tempSelected = yPosition * 16 + xPosition + i_width;
+		hoveredItem = yPosition * 16 + xPosition + inv_width;
 
 		selectionBox.setPosition(
-			bagBgPos.x + xPosition * ((bagBgSize.x / i_width)),
+			bagBgPos.x + xPosition * ((bagBgSize.x / inv_width)),
 			bagBgPos.y + yPosition * ((bagBgSize.y / 2))
 		);
 	}				
@@ -127,12 +187,17 @@ void Inventory::handleClick(sf::Event& userInput) {
 	if (userInput.mouseButton.button == sf::Mouse::Left) {
 		// selected 		
 		if (!isOpen) {
-			if (tempSelected > -1)itemSelected = tempSelected;
-
-			if (itemSelected < i_width) {
+			if (hoveredItem > -1)selectedItem = hoveredItem;
+			
+			if (isInToolbar(selectedItem)) {
 				resetSelected();
 			}
-		}		
+		}
+		else {
+			if (!pointInRect(mousePosition, backgroundPosition, backgroundSize)) {
+				Close();
+			}
+		}
 	}
 }
 
@@ -140,34 +205,34 @@ void Inventory::handleKeyPress(sf::Event& userInput) {
 	if (!isOpen) {
 		switch (userInput.key.code) {
 		case sf::Keyboard::Num1:
-			itemSelected = 0;
+			selectedItem = 0;
 			break;
 		case sf::Keyboard::Num2:
-			itemSelected = 1;
+			selectedItem = 1;
 			break;
 		case sf::Keyboard::Num3:
-			itemSelected = 2;
+			selectedItem = 2;
 			break;
 		case sf::Keyboard::Num4:
-			itemSelected = 3;
+			selectedItem = 3;
 			break;
 		case sf::Keyboard::Num5:
-			itemSelected = 4;
+			selectedItem = 4;
 			break;
 		case sf::Keyboard::Num6:
-			itemSelected = 5;
+			selectedItem = 5;
 			break;
 		case sf::Keyboard::Num7:
-			itemSelected = 6;
+			selectedItem = 6;
 			break;
 		case sf::Keyboard::Num8:
-			itemSelected = 7;
+			selectedItem = 7;
 			break;
 		case sf::Keyboard::Num9:
-			itemSelected = 8;
+			selectedItem = 8;
 			break;
 		case sf::Keyboard::Num0:
-			itemSelected = 9;
+			selectedItem = 9;
 			break;
 		}
 		resetSelected();
@@ -175,20 +240,31 @@ void Inventory::handleKeyPress(sf::Event& userInput) {
 }
 
 void Inventory::handleScroll(sf::Event& userInput) {
-	if (!isOpen && itemSelected > -1 && itemSelected < i_width) {
-		itemSelected += userInput.mouseWheelScroll.delta;
-		if (itemSelected == i_width) itemSelected = i_width - 1;
-		if (itemSelected == -1) itemSelected = 0;
+	if (!isOpen && selectedItem > -1 && isInToolbar(selectedItem)) {
+		selectedItem += (int)userInput.mouseWheelScroll.delta;
+		if (selectedItem == inv_width) selectedItem = inv_width - 1;
+		if (selectedItem == -1) selectedItem = 0;
 		resetSelected();
 	}
 }
 
 void Inventory::Render(sf::RenderWindow& window) {
+
+	//render inventory background
 	if (isOpen) {		
 		window.draw(background);		
 		window.draw(bag_bg);
 	}	
 	window.draw(hotbar_bg);
 	if (renderSelection)window.draw(selectionBox);
-	if (itemSelected > -1)window.draw(selected);
+	if (selectedItem > -1)window.draw(selected);
+
+	//render items
+	for (auto i : items) {
+		if (isInToolbar(i.id)) 
+			window.draw(i.inv_sprite);		
+		else 
+			if (isOpen)
+				window.draw(i.inv_sprite);		
+	}
 }
