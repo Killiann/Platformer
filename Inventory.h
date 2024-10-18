@@ -10,7 +10,11 @@ struct inventoryItem {
 
 	int id;
 	Item* item;
+
 	sf::Sprite inv_sprite;
+	sf::Sprite itemInfo_sprite;
+	sf::Text itemName;
+	sf::Text itemDescription;
 
 	inventoryItem(int n_id, Item* n_item) {
 		id = n_id;
@@ -20,6 +24,23 @@ struct inventoryItem {
 	inventoryItem() {
 		id = -1;
 		item = nullptr;
+	}
+
+	void updateInfoPosition(float viewScale) {
+		itemInfo_sprite.setPosition(
+			inv_sprite.getPosition().x + inv_sprite.getTextureRect().getSize().x * viewScale,
+			inv_sprite.getPosition().y
+		);
+	}
+
+	void Render(sf::RenderWindow& window) {
+		window.draw(inv_sprite);
+	}
+
+	void RenderInfo(sf::RenderWindow& window) {
+		window.draw(itemInfo_sprite);
+		window.draw(itemName);
+		window.draw(itemDescription);
 	}
 
 	bool isEmpty() { if (id == -1) return true; return false; }
@@ -33,11 +54,14 @@ private:
 	static const int inv_width = 12;
 	float viewScale = 5.0f;
 
+	sf::Vector2i mousePosition;
+	sf::Texture* texture;
+	sf::Font* font;
+
 	//drawable
-	//sf::Texture texture;
 	sf::Sprite background;
 	sf::Sprite hotbar_bg;
-	sf::Sprite bag_bg;
+	sf::Sprite bag_bg;	
 
 	sf::Sprite selectionBox;
 	sf::Sprite selected;
@@ -51,11 +75,13 @@ private:
 	sf::Vector2f bagBgPos;
 	sf::Vector2i bagBgSize;
 
-	sf::Vector2i mousePosition;
+	//item info	
 
 	bool isOpen{ false };
 	bool renderSelection{ false };
 	
+	sf::Clock hoverClock;
+	sf::Time hoverTime;
 	int selectedItem{ 0 };
 	int hoveredItem{ -1 };
 	int itemCount = 0;
@@ -69,7 +95,7 @@ private:
 	inline bool isInToolbar(int item_id) { if (item_id < inv_width) return true; return false; }
 public:
 	Inventory();
-	Inventory(sf::Texture& tex, sf::RenderWindow& window);
+	Inventory(sf::Texture& tex, sf::RenderWindow& window, sf::Font& fon);
 
 	void addItem(Item* item);
 	void removeItem(int id);

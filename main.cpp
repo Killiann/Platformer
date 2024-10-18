@@ -111,7 +111,7 @@ Game::Game() :
     i_axe = new Item(4, "axe", "A tool used for cutting wood.", axeSprite);
 
     world = World("resources/maps/map.json", tileMap);
-    inventory = Inventory(inventoryTileMap, mWindow);
+    inventory = Inventory(inventoryTileMap, mWindow, pixelFont);
 
     inventory.addItem(i_axe);
     inventory.addItem(i_hoe);
