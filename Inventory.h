@@ -4,17 +4,18 @@
 #include <SFML/Graphics.hpp>
 #include <numeric>
 #include "Item.h"
-
+#include "CustomGraphics.h"
 
 struct inventoryItem {
-
+	float infoPadding = 11.f;
 	int id;
 	Item* item;
 
+	sf::Texture bgTex;
 	sf::Sprite inv_sprite;
 	sf::Sprite itemInfo_sprite;
 	sf::Text itemName;
-	sf::Text itemDescription;
+	MultiLineText itemDescription;
 
 	inventoryItem(int n_id, Item* n_item) {
 		id = n_id;
@@ -26,11 +27,31 @@ struct inventoryItem {
 		item = nullptr;
 	}
 
+	inventoryItem(const inventoryItem& other) {
+		id = other.id;
+		item = other.item;		
+		bgTex = other.bgTex;
+		inv_sprite = other.inv_sprite;
+		itemInfo_sprite = other.itemInfo_sprite;
+		itemName = other.itemName;
+		itemDescription = other.itemDescription;
+	}
+
 	void updateInfoPosition(float viewScale) {
 		itemInfo_sprite.setPosition(
 			inv_sprite.getPosition().x + inv_sprite.getTextureRect().getSize().x * viewScale,
 			inv_sprite.getPosition().y
 		);
+
+		itemName.setPosition(
+			itemInfo_sprite.getPosition().x + infoPadding,
+			itemInfo_sprite.getPosition().y + infoPadding
+		);
+
+		itemDescription.setPosition(sf::Vector2f(
+			itemInfo_sprite.getPosition().x + infoPadding,
+			itemInfo_sprite.getPosition().y + infoPadding* 2 + itemName.getCharacterSize()
+		));
 	}
 
 	void Render(sf::RenderWindow& window) {
@@ -40,7 +61,7 @@ struct inventoryItem {
 	void RenderInfo(sf::RenderWindow& window) {
 		window.draw(itemInfo_sprite);
 		window.draw(itemName);
-		window.draw(itemDescription);
+		itemDescription.render(window);
 	}
 
 	bool isEmpty() { if (id == -1) return true; return false; }
@@ -52,7 +73,10 @@ private:
 	std::vector<inventoryItem> items;
 	static const int maxItems = 36;	
 	static const int inv_width = 12;
-	float viewScale = 5.0f;
+	static const int itemTitleFontSize = 30;
+	static const int itemDescriptionFontSize = 20;
+
+	float viewScale = 5.f;
 
 	sf::Vector2i mousePosition;
 	sf::Texture* texture;
@@ -126,3 +150,4 @@ public:
 	}
 	inline const std::vector<inventoryItem> getItems() { return items; }
 };
+

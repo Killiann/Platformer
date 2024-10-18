@@ -96,19 +96,19 @@ Game::Game() :
 
     sf::Sprite swordSprite(inventoryTileMap);
     swordSprite.setTextureRect(sf::IntRect(49, 134, 16, 16));
-    i_sword = new Item(1, "sword", "A basic melee weapon.", swordSprite);
+    i_sword = new Item(1, "Sword", "A basic melee weapon.", swordSprite);
 
     sf::Sprite hoeSprite(inventoryTileMap);
     hoeSprite.setTextureRect(sf::IntRect(1, 134, 16, 16));
-    i_hoe = new Item(2, "hoe", "A tool used for tilling soil.", hoeSprite);
+    i_hoe = new Item(2, "Hoe", "A tool used for tilling soil.", hoeSprite);
 
     sf::Sprite pickaxeSprite(inventoryTileMap);
     pickaxeSprite.setTextureRect(sf::IntRect(17, 134, 16, 16));
-    i_pickaxe = new Item(3, "pickaxe", "A tool used for breaking rocks.", pickaxeSprite);
+    i_pickaxe = new Item(3, "Pickaxe", "A tool used for breaking rocks.", pickaxeSprite);
 
     sf::Sprite axeSprite(inventoryTileMap);
     axeSprite.setTextureRect(sf::IntRect(33, 134, 16, 16));
-    i_axe = new Item(4, "axe", "A tool used for cutting wood.", axeSprite);
+    i_axe = new Item(4, "Axe", "A tool used for cutting wood.", axeSprite);
 
     world = World("resources/maps/map.json", tileMap);
     inventory = Inventory(inventoryTileMap, mWindow, pixelFont);

@@ -108,14 +108,43 @@ void Inventory::addItem(Item* n_item) {
 		//add item to first empty 
 		for (size_t i = 0; i < maxItems;i++) {
 			if (items[i].isEmpty()) {
-				inventoryItem newItem(i, n_item);
+				inventoryItem newItem(i, n_item);											
 
-				sf::Sprite itemInfoBg(*texture, sf::IntRect(16, 151, 28, 33));
-				itemInfoBg.setScale(viewScale, viewScale);
+				sf::Text itemName(n_item->getName(), *font, itemTitleFontSize);			
+				itemName.setFillColor(sf::Color::Black);
+				newItem.itemName = itemName;
 
-				newItem.itemInfo_sprite = itemInfoBg;
+				MultiLineText itemDesc(n_item->getDescription(), 32 * viewScale - newItem.infoPadding * 2, (float)itemDescriptionFontSize, font);				
+				newItem.itemDescription= itemDesc; 
 
+				unsigned int height = newItem.infoPadding * 3 + itemName.getGlobalBounds().height + itemDesc.getSize().y;
+
+				sf::RenderTexture combinedTexture;
+				combinedTexture.create(32 * viewScale, height+2000);
+
+				sf::Sprite topSection(*texture, sf::IntRect(16, 151, 32, 3));
+				sf::Sprite middleSection(*texture, sf::IntRect(16, 154, 32, 3));
+				sf::Sprite bottomSection(*texture, sf::IntRect(16, 162, 32, 3));
+				
+				float middleYScale = ((height - 6 * viewScale) / viewScale) * 2.5;
+
+				topSection.setScale(viewScale, viewScale);
+				middleSection.setScale(viewScale, middleYScale);
+				bottomSection.setScale(viewScale, viewScale);
+
+				topSection.setPosition(sf::Vector2f(0, 0));
+				middleSection.setPosition(sf::Vector2f(0, 3 * viewScale));							
+				bottomSection.setPosition(sf::Vector2f(0, 3 * viewScale + middleSection.getTextureRect().height * middleYScale));
+
+				combinedTexture.clear(sf::Color::Transparent);
+				combinedTexture.draw(topSection);
+				combinedTexture.draw(middleSection);
+				combinedTexture.draw(bottomSection);
+				combinedTexture.display();
+
+				newItem.bgTex = sf::Texture(combinedTexture.getTexture());
 				items[i] = newItem;
+				items[i].itemInfo_sprite = sf::Sprite(items[i].bgTex);							
 				itemCount++;
 				break;
 			}
@@ -257,8 +286,8 @@ void Inventory::handleScroll(sf::Event& userInput) {
 	//scroll select in toolbar
 	if (!isOpen && selectedItem > -1 && isInToolbar(selectedItem)) {
 		selectedItem += (int)userInput.mouseWheelScroll.delta;
-		if (selectedItem == inv_width) selectedItem = inv_width - 1;
-		if (selectedItem == -1) selectedItem = 0;
+		if (selectedItem >= inv_width) selectedItem = inv_width - 1;
+		if (selectedItem <= -1) selectedItem = 0;
 		resetSelected();
 	}
 }
@@ -294,3 +323,5 @@ void Inventory::Render(sf::RenderWindow& window) {
 		}
 	}
 }
+
+
