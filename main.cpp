@@ -53,6 +53,12 @@ private:
     Item* i_hoe;
     Item* i_pickaxe;
     Item* i_axe;
+    Item* i_potatoSeeds;
+    Item* i_tomatoSeeds;
+    Item* i_carrotSeeds;
+    Item* i_wheatSeeds;
+    Item* i_handGun;
+    Item* i_machineGun;
 
     //FPS
     float lastTime{ 0 };
@@ -76,7 +82,7 @@ Game::Game() :
     TimePerFrame = sf::seconds(1.f / updateFrameRate);    
     currentState = PLAYING;
 
-    //load resources
+    //load resources 
     if (!pixelFont.loadFromFile("resources/fonts/pixel_font.ttf")) 
         std::cout << "Could not load pixel_font.ttf\n";    
     else std::cout << "Loaded pixel_font.ttf\n";
@@ -94,6 +100,10 @@ Game::Game() :
     view = sf::View(sf::FloatRect(0, 0, 192 * 3, 108 * 3));
     mWindow.setView(view);    
 
+    world = World("resources/maps/map.json", tileMap);
+    inventory = Inventory(inventoryTileMap, mWindow, pixelFont);
+
+    //initialise Items
     sf::Sprite swordSprite(inventoryTileMap);
     swordSprite.setTextureRect(sf::IntRect(49, 134, 16, 16));
     i_sword = new Item(1, "Sword", "A basic melee weapon.", swordSprite);
@@ -110,15 +120,41 @@ Game::Game() :
     axeSprite.setTextureRect(sf::IntRect(33, 134, 16, 16));
     i_axe = new Item(4, "Axe", "A tool used for cutting wood.", axeSprite);
 
-    world = World("resources/maps/map.json", tileMap);
-    inventory = Inventory(inventoryTileMap, mWindow, pixelFont);
+    sf::Sprite potatoSeedSprite(inventoryTileMap);
+    potatoSeedSprite.setTextureRect(sf::IntRect(65, 134, 16, 16));
+    i_potatoSeeds = new Item(5, "Potato Seeds", "Plant these to grow potatoes.", potatoSeedSprite);
 
+    sf::Sprite tomatoSeedSprite(inventoryTileMap);
+    tomatoSeedSprite.setTextureRect(sf::IntRect(81, 134, 16, 16));
+    i_tomatoSeeds = new Item(6, "Tomato Seeds", "Plant these to grow tomatoes.", tomatoSeedSprite);
+
+    sf::Sprite carrotSeedSprite(inventoryTileMap);
+    carrotSeedSprite.setTextureRect(sf::IntRect(97, 134, 16, 16));
+    i_carrotSeeds = new Item(7, "Carrot Seeds", "Plant these to grow carrots.", carrotSeedSprite);
+
+    sf::Sprite wheatSeedSprite(inventoryTileMap);
+    wheatSeedSprite.setTextureRect(sf::IntRect(113, 134, 16, 16));
+    i_wheatSeeds = new Item(8, "Wheat Seeds", "Plant these to grow wheat.", wheatSeedSprite);
+
+    sf::Sprite handGunSprite(inventoryTileMap);
+    handGunSprite.setTextureRect(sf::IntRect(129, 134, 16, 16));
+    i_handGun = new Item(9, "Handgun", "Just for fun xx", handGunSprite);
+
+    sf::Sprite machineGunSprite(inventoryTileMap);
+    machineGunSprite.setTextureRect(sf::IntRect(145, 134, 16, 16));
+    i_machineGun = new Item(10, "Axe", "For even more fun xx", machineGunSprite);
+
+    //testing
     inventory.addItem(i_axe);
     inventory.addItem(i_hoe);
     inventory.addItem(i_pickaxe);
-    for (int i = 0; i < 34; i++) {
-        inventory.addItem(i_sword);
-    }
+    inventory.addItem(i_sword);   
+    inventory.addItem(i_potatoSeeds);
+    inventory.addItem(i_carrotSeeds);
+    inventory.addItem(i_tomatoSeeds);
+    inventory.addItem(i_wheatSeeds);
+    inventory.addItem(i_handGun);
+    inventory.addItem(i_machineGun);
 
     frameCounter.setFont(pixelFont);
     frameCounter.setString("000");

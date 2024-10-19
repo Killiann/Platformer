@@ -14,7 +14,7 @@ struct inventoryItem {
 	sf::Texture bgTex;
 	sf::Sprite inv_sprite;
 	sf::Sprite itemInfo_sprite;
-	sf::Text itemName;
+	MultiLineText itemName;
 	MultiLineText itemDescription;
 
 	inventoryItem(int n_id, Item* n_item) {
@@ -43,14 +43,14 @@ struct inventoryItem {
 			inv_sprite.getPosition().y
 		);
 
-		itemName.setPosition(
+		itemName.setPosition(sf::Vector2f(
 			itemInfo_sprite.getPosition().x + infoPadding,
 			itemInfo_sprite.getPosition().y + infoPadding
-		);
+		));
 
 		itemDescription.setPosition(sf::Vector2f(
 			itemInfo_sprite.getPosition().x + infoPadding,
-			itemInfo_sprite.getPosition().y + infoPadding* 2 + itemName.getCharacterSize()
+			itemInfo_sprite.getPosition().y + infoPadding* 2 + itemName.getSize().y
 		));
 	}
 
@@ -60,7 +60,7 @@ struct inventoryItem {
 
 	void RenderInfo(sf::RenderWindow& window) {
 		window.draw(itemInfo_sprite);
-		window.draw(itemName);
+		itemName.render(window);
 		itemDescription.render(window);
 	}
 
@@ -73,7 +73,7 @@ private:
 	std::vector<inventoryItem> items;
 	static const int maxItems = 36;	
 	static const int inv_width = 12;
-	static const int itemTitleFontSize = 30;
+	static const int itemTitleFontSize = 28;
 	static const int itemDescriptionFontSize = 20;
 
 	float viewScale = 5.f;
@@ -112,10 +112,11 @@ private:
 
 	void resetHotbarPositions();
 	void resetSpritePositions();
+	void setupInfoBoxTexture(Item* n_item, inventoryItem &newItem);
+	
 	inline void resetSelected() {
 		selected.setPosition(hotBarPos.x + selectedItem * ((hotBarSize.x / 12)), hotBarPos.y + viewScale);
 	}
-
 	inline bool isInToolbar(int item_id) { if (item_id < inv_width) return true; return false; }
 public:
 	Inventory();

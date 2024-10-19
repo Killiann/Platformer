@@ -2,47 +2,6 @@
 
 Inventory::Inventory(){}
 
-void Inventory::resetHotbarPositions() {
-	hotBarPos = hotbar_bg.getPosition();
-	hotBarSize = hotbar_bg.getTextureRect().getSize();
-	hotBarSize.x *= (int)viewScale;
-	hotBarSize.y *= (int)viewScale;
-
-	hotBarSize.x -= (int)viewScale * 2;
-	hotBarSize.y -= (int)viewScale * 2;
-
-	hotBarPos.x += (int)viewScale;
-	hotBarPos.y += (int)viewScale;	
-
-	for (size_t i = 0; i < items.size(); i++) {
-		if (isInToolbar(i)) {
-			//top bar				
-			items[i].inv_sprite.setPosition(sf::Vector2f(hotBarPos.x + i * 16 * viewScale, hotBarPos.y));
-			items[i].updateInfoPosition(viewScale);
-		}
-		else {
-			//rest
-		}
-	}
-}
-
-void Inventory::resetSpritePositions() {
-	//loop through items and set positions depending on ID
-	for (size_t i = 0; i < items.size(); i++) {
-		//toolbar items
-		if (isInToolbar(i)) {
-			items[i].inv_sprite.setPosition(sf::Vector2f(hotBarPos.x + i * 16 * viewScale, hotBarPos.y));
-		}
-		else {
-			//rest of inv.
-			float xPos = bagBgPos.x + ((i - inv_width) % inv_width) * 16.f * viewScale;
-			float yPos = bagBgPos.y + ((i - inv_width) / inv_width) * 16.f * viewScale;
-			items[i].inv_sprite.setPosition(sf::Vector2f(xPos, yPos));
-		}
-		items[i].updateInfoPosition(viewScale);
-	}
-}
-
 Inventory::Inventory(sf::Texture& tex, sf::RenderWindow& window, sf::Font& fon) : font(& fon), texture(& tex){
 	//init background textures	
 
@@ -98,6 +57,89 @@ Inventory::Inventory(sf::Texture& tex, sf::RenderWindow& window, sf::Font& fon) 
 	}
 }
 
+void Inventory::resetHotbarPositions() {
+	hotBarPos = hotbar_bg.getPosition();
+	hotBarSize = hotbar_bg.getTextureRect().getSize();
+	hotBarSize.x *= (int)viewScale;
+	hotBarSize.y *= (int)viewScale;
+
+	hotBarSize.x -= (int)viewScale * 2;
+	hotBarSize.y -= (int)viewScale * 2;
+
+	hotBarPos.x += (int)viewScale;
+	hotBarPos.y += (int)viewScale;
+
+	for (size_t i = 0; i < items.size(); i++) {
+		if (isInToolbar(i)) {
+			//top bar				
+			items[i].inv_sprite.setPosition(sf::Vector2f(hotBarPos.x + i * 16 * viewScale, hotBarPos.y));
+			items[i].updateInfoPosition(viewScale);
+		}
+		else {
+			//rest
+		}
+	}
+}
+
+void Inventory::resetSpritePositions() {
+	//loop through items and set positions depending on ID
+	for (size_t i = 0; i < items.size(); i++) {
+		//toolbar items
+		if (isInToolbar(i)) {
+			items[i].inv_sprite.setPosition(sf::Vector2f(hotBarPos.x + i * 16 * viewScale, hotBarPos.y));
+		}
+		else {
+			//rest of inv.
+			float xPos = bagBgPos.x + ((i - inv_width) % inv_width) * 16.f * viewScale;
+			float yPos = bagBgPos.y + ((i - inv_width) / inv_width) * 16.f * viewScale;
+			items[i].inv_sprite.setPosition(sf::Vector2f(xPos, yPos));
+		}
+		items[i].updateInfoPosition(viewScale);
+	}
+}
+
+void Inventory::setupInfoBoxTexture(Item* n_item, inventoryItem& newItem) {	
+	unsigned int infoBoxW = 32 * viewScale - newItem.infoPadding * 2;
+	
+	//text boxes for item info
+	MultiLineText itemName(n_item->getName(), infoBoxW, itemTitleFontSize, font);
+	itemName.setLetterSpacing(1.f);
+	newItem.itemName = itemName;
+
+	MultiLineText itemDesc(n_item->getDescription(), infoBoxW, (float)itemDescriptionFontSize, font);
+	itemDesc.setLetterSpacing(0.8f);
+	newItem.itemDescription = itemDesc;	
+
+	unsigned int infoBoxH = newItem.infoPadding * 5 + itemName.getSize().y + itemDesc.getSize().y;
+
+	//setup combined texture to draw to for the background of the info box (variable height)
+	sf::RenderTexture combinedTexture;
+	combinedTexture.create(32 * viewScale, infoBoxH);
+
+	sf::Sprite topSection(*texture, sf::IntRect(16, 151, 32, 3));
+	sf::Sprite middleSection(*texture, sf::IntRect(16, 154, 32, 3));
+	sf::Sprite bottomSection(*texture, sf::IntRect(16, 162, 32, 3));
+
+	float middleYScale = (infoBoxH - (topSection.getTextureRect().height + bottomSection.getTextureRect().height) * viewScale) / (middleSection.getTextureRect().height);
+
+	topSection.setScale(viewScale, viewScale);
+	middleSection.setScale(viewScale, middleYScale);
+	bottomSection.setScale(viewScale, viewScale);
+
+	topSection.setPosition(sf::Vector2f(0, 0));
+	middleSection.setPosition(sf::Vector2f(0, 3 * viewScale));
+	bottomSection.setPosition(sf::Vector2f(0, 3 * viewScale + middleSection.getTextureRect().height * middleYScale));
+
+	//draw separate parts of the sprite to the RenderTexture
+	combinedTexture.clear(sf::Color::Transparent);
+	combinedTexture.draw(topSection);
+	combinedTexture.draw(middleSection);
+	combinedTexture.draw(bottomSection);
+	combinedTexture.display();
+
+	newItem.bgTex = sf::Texture(combinedTexture.getTexture());
+}
+
 void Inventory::addItem(Item* n_item) {
 	
 	//check for max items
@@ -105,44 +147,12 @@ void Inventory::addItem(Item* n_item) {
 		n_item->setScale(viewScale);		 		
 		inventoryItem empty;
 
-		//add item to first empty 
+		//add item to first empty slot
 		for (size_t i = 0; i < maxItems;i++) {
-			if (items[i].isEmpty()) {
-				inventoryItem newItem(i, n_item);											
+			if (items[i].isEmpty()) {				
+				inventoryItem newItem(i, n_item);																	
+				setupInfoBoxTexture(n_item, newItem); //generates texture of custom height for info background
 
-				sf::Text itemName(n_item->getName(), *font, itemTitleFontSize);			
-				itemName.setFillColor(sf::Color::Black);
-				newItem.itemName = itemName;
-
-				MultiLineText itemDesc(n_item->getDescription(), 32 * viewScale - newItem.infoPadding * 2, (float)itemDescriptionFontSize, font);				
-				newItem.itemDescription= itemDesc; 
-
-				unsigned int height = newItem.infoPadding * 3 + itemName.getGlobalBounds().height + itemDesc.getSize().y;
-
-				sf::RenderTexture combinedTexture;
-				combinedTexture.create(32 * viewScale, height+2000);
-
-				sf::Sprite topSection(*texture, sf::IntRect(16, 151, 32, 3));
-				sf::Sprite middleSection(*texture, sf::IntRect(16, 154, 32, 3));
-				sf::Sprite bottomSection(*texture, sf::IntRect(16, 162, 32, 3));
-				
-				float middleYScale = ((height - 6 * viewScale) / viewScale) * 2.5;
-
-				topSection.setScale(viewScale, viewScale);
-				middleSection.setScale(viewScale, middleYScale);
-				bottomSection.setScale(viewScale, viewScale);
-
-				topSection.setPosition(sf::Vector2f(0, 0));
-				middleSection.setPosition(sf::Vector2f(0, 3 * viewScale));							
-				bottomSection.setPosition(sf::Vector2f(0, 3 * viewScale + middleSection.getTextureRect().height * middleYScale));
-
-				combinedTexture.clear(sf::Color::Transparent);
-				combinedTexture.draw(topSection);
-				combinedTexture.draw(middleSection);
-				combinedTexture.draw(bottomSection);
-				combinedTexture.display();
-
-				newItem.bgTex = sf::Texture(combinedTexture.getTexture());
 				items[i] = newItem;
 				items[i].itemInfo_sprite = sf::Sprite(items[i].bgTex);							
 				itemCount++;
@@ -150,7 +160,8 @@ void Inventory::addItem(Item* n_item) {
 			}
 		}		
 
-		//maybe in future this could be changed if a lot of items flow into the inventory at once
+		//maybe in future this could be changed for optimisation
+		// if a lot of items flow into the inventory at once
 		resetSpritePositions();
 	}
 	else {
@@ -170,6 +181,7 @@ void Inventory::removeItem(int id) {
 	}
 }
 
+//to be moved to custom graphics .h
 bool pointInRect(sf::Vector2i& point, sf::Vector2f& rectPos, sf::Vector2i& rectSize) {	
 	if (point.x > rectPos.x &&
 		point.x < rectPos.x + rectSize.x &&
@@ -227,18 +239,15 @@ void Inventory::handleClick(sf::Event& userInput) {
 	if (userInput.mouseButton.button == sf::Mouse::Left) {
 		if (!isOpen) {
 			// select item in toolbar
-			if (hoveredItem > -1)selectedItem = hoveredItem;
+			if (hoveredItem > -1)selectedItem = hoveredItem;			
 			
-			if (isInToolbar(selectedItem)) {
-				resetSelected();
-			}
+			if (isInToolbar(selectedItem)) 
+				resetSelected();			
 		}
 		else {
-
 			//if clicked outside of the inventory
-			if (!pointInRect(mousePosition, backgroundPosition, backgroundSize)) {
-				Close();
-			}
+			if (!pointInRect(mousePosition, backgroundPosition, backgroundSize)) 
+				Close();			
 		}
 	}
 }
