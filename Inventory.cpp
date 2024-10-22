@@ -4,7 +4,6 @@ Inventory::Inventory(){}
 
 Inventory::Inventory(sf::Texture& tex, sf::RenderWindow& window, sf::Font& fon) : font(& fon), texture(& tex){
 	//init background textures	
-
 	background = sf::Sprite(tex, sf::IntRect(0, 0, 208, 80));
 	background.setPosition(
 		window.getSize().x / 2.f - (background.getTextureRect().width / 2) * viewScale,		
@@ -21,13 +20,13 @@ Inventory::Inventory(sf::Texture& tex, sf::RenderWindow& window, sf::Font& fon) 
 		background.getPosition().y + 33 * viewScale);
 
 	//selection
-	selectionBox = sf::Sprite(tex, sf::IntRect(177, 134, 16, 16));	
+	selectionIndicator = sf::Sprite(tex, sf::IntRect(177, 134, 16, 16));	
 	selected = sf::Sprite(tex, sf::IntRect(1, 151, 15, 15));	
 
 	background.setScale(viewScale, viewScale);
 	hotbar_bg.setScale(viewScale, viewScale);
 	bag_bg.setScale(viewScale, viewScale);
-	selectionBox.setScale(viewScale, viewScale);
+	selectionIndicator.setScale(viewScale, viewScale);
 	selected.setScale(viewScale, viewScale);	
 
 	bagBgPos = bag_bg.getPosition();
@@ -45,16 +44,15 @@ Inventory::Inventory(sf::Texture& tex, sf::RenderWindow& window, sf::Font& fon) 
 	backgroundPosition = background.getPosition();
 	backgroundSize = background.getTextureRect().getSize();
 	backgroundSize.x *= (int)viewScale;
-	backgroundSize.y *= (int)viewScale;
+	backgroundSize.y *= (int)viewScale;	
+
+	items.resize(maxItems);
 
 	resetHotbarPositions();
 	resetSelected();
 
-	//fill inventory with empty items
-	for(size_t i = 0; i< maxItems; i++){
-		inventoryItem empty;
-		items.push_back(empty);
-	}
+	heldItemText.init(font, hotBarPos, hotBarSize);
+	if (!items[selectedItem].isEmpty()) heldItemText.updateText(items[selectedItem].item->getName());
 }
 
 void Inventory::resetHotbarPositions() {
@@ -78,7 +76,16 @@ void Inventory::resetHotbarPositions() {
 		else {
 			//rest
 		}
-	}
+	}	
+}
+
+void Inventory::resetSelected() {
+	//set background graphic
+	selected.setPosition(hotBarPos.x + selectedItem * ((hotBarSize.x / 12)), hotBarPos.y + viewScale);
+
+	if (!items[selectedItem].isEmpty()) heldItemText.updateText(items[selectedItem].item->getName());
+	else heldItemText.updateText("");
+	heldItemText.resetFade();
 }
 
 void Inventory::resetSpritePositions() {
@@ -93,7 +100,8 @@ void Inventory::resetSpritePositions() {
 			float xPos = bagBgPos.x + ((i - inv_width) % inv_width) * 16.f * viewScale;
 			float yPos = bagBgPos.y + ((i - inv_width) / inv_width) * 16.f * viewScale;
 			items[i].inv_sprite.setPosition(sf::Vector2f(xPos, yPos));
-		}
+				}
+
 		items[i].updateInfoPosition(viewScale);
 	}
 }
@@ -107,7 +115,7 @@ void Inventory::setupInfoBoxTexture(Item* n_item, inventoryItem& newItem) {
 	newItem.itemName = itemName;
 
 	MultiLineText itemDesc(n_item->getDescription(), infoBoxW, (float)itemDescriptionFontSize, font);
-	itemDesc.setLetterSpacing(0.8f);
+	itemDesc.setLetterSpacing(1.f);
 	newItem.itemDescription = itemDesc;	
 
 	unsigned int infoBoxH = newItem.infoPadding * 5 + itemName.getSize().y + itemDesc.getSize().y;
@@ -138,27 +146,59 @@ void Inventory::setupInfoBoxTexture(Item* n_item, inventoryItem& newItem) {
 	combinedTexture.display();
 
 	newItem.bgTex = sf::Texture(combinedTexture.getTexture());
+	
 }
 
-void Inventory::addItem(Item* n_item) {
-	
+void Inventory::addItem(Item* n_item) {	
 	//check for max items
 	if (itemCount < maxItems) {				
 		n_item->setScale(viewScale);		 		
 		inventoryItem empty;
 
-		//add item to first empty slot
-		for (size_t i = 0; i < maxItems;i++) {
-			if (items[i].isEmpty()) {				
-				inventoryItem newItem(i, n_item);																	
-				setupInfoBoxTexture(n_item, newItem); //generates texture of custom height for info background
+		//if stackable, check if item of type already exists in vector
+		bool hasStacked = false;
 
-				items[i] = newItem;
-				items[i].itemInfo_sprite = sf::Sprite(items[i].bgTex);							
-				itemCount++;
-				break;
+		if (n_item->canStack()) {
+			for (size_t i = 0; i < maxItems;i++) {
+				if (!items[i].isEmpty()) {
+					if (items[i].item->getId() == n_item->getId()) {
+						if (items[i].stackCount < items[i].maxStack) {
+							items[i].stackCount++;
+							items[i].stackInfo.setString(std::to_string(items[i].stackCount));
+							hasStacked = true;
+							break;
+						}
+					}
+				}
 			}
-		}		
+		}
+
+		//if unique item or could not be added to stack
+		if (!n_item->canStack() || !hasStacked) {
+			//add item to first empty slot
+			for (size_t i = 0; i < maxItems; i++) {
+				if (items[i].isEmpty()) {
+					inventoryItem newItem(i, n_item);
+					setupInfoBoxTexture(n_item, newItem); //generates texture of custom height for info background					
+
+					if (n_item->canStack()) {
+						//setup stack text
+						newItem.stackInfo.setFont(*font);
+						newItem.stackInfo.setCharacterSize(20);
+						newItem.stackInfo.setFillColor(sf::Color::Black);
+						newItem.stackInfo.setOutlineColor(sf::Color::White);
+						newItem.stackInfo.setOutlineThickness(2);					
+						newItem.stackCount++;
+						newItem.stackInfo.setString(std::to_string(newItem.stackCount));
+					}
+
+					items[i] = newItem;
+					items[i].itemInfo_sprite = sf::Sprite(items[i].bgTex);
+					itemCount++;
+					break;
+				}
+			}
+		}
 
 		//maybe in future this could be changed for optimisation
 		// if a lot of items flow into the inventory at once
@@ -191,9 +231,8 @@ bool pointInRect(sf::Vector2i& point, sf::Vector2f& rectPos, sf::Vector2i& rectS
 	else return false;
 }
 
-void Inventory::update(sf::Vector2i& mousePos) {
-	
-	renderSelection = false;
+void Inventory::update(sf::Vector2i& mousePos) {	
+	isHovering = false;
 	int currentHover = -1;
 
 	//used later in handle click, could be better?
@@ -201,53 +240,100 @@ void Inventory::update(sf::Vector2i& mousePos) {
 
 	//toolbar hover check
 	if (pointInRect(mousePos, hotBarPos, hotBarSize)) {
-		renderSelection = true;
+		isHovering = true;
 		
 		//ID of selected item
 		int xPosition = (mousePos.x - ((int)hotBarPos.x)) / 16 / (int)viewScale;
 		currentHover = xPosition;
 
-		selectionBox.setPosition(
+		selectionIndicator.setPosition(
 			hotBarPos.x + xPosition * ((hotBarSize.x / inv_width)),
 			hotBarPos.y);
 	}
 
 	//for rest of inventory	
-	if (pointInRect(mousePos, bagBgPos, bagBgSize) && isOpen) {
-		renderSelection = true;		
-
-		//combine to make ID of hovered item
-		int xPosition = (mousePos.x - ((int)bagBgPos.x)) / 16 / (int)viewScale;
-		int yPosition = (mousePos.y - ((int)bagBgPos.y)) / 16 / (int)viewScale;
-
-		currentHover = yPosition * inv_width + xPosition + inv_width;
-
-		selectionBox.setPosition(
-			bagBgPos.x + xPosition * ((bagBgSize.x / inv_width)),
-			bagBgPos.y + yPosition * ((bagBgSize.y / 2))
-		);
-	}		
 	if (isOpen) {
+		if (pointInRect(mousePos, bagBgPos, bagBgSize)) {
+			isHovering = true;
+
+			//combine to make ID of hovered item
+			int xPosition = (mousePos.x - ((int)bagBgPos.x)) / 16 / (int)viewScale;
+			int yPosition = (mousePos.y - ((int)bagBgPos.y)) / 16 / (int)viewScale;
+
+			currentHover = yPosition * inv_width + xPosition + inv_width;
+
+			selectionIndicator.setPosition(
+				bagBgPos.x + xPosition * ((bagBgSize.x / inv_width)),
+				bagBgPos.y + yPosition * ((bagBgSize.y / 2))
+			);
+		}
+
+		//item info timer
 		if (hoveredItem != currentHover) hoverTime = sf::Time::Zero;
 		else hoverTime += hoverClock.restart();
 	}
 
 	hoveredItem = currentHover;
+
+	//update dragged sprite
+	if (draggedItem != -1 && hoveredItem != draggedItem && !items[draggedItem].isEmpty()) {
+		if(!isDragging)items[draggedItem].inv_sprite.setColor(sf::Color(255, 255, 255, 128));
+		
+		isDragging = true;
+		draggedItemSprite.setPosition(mousePos.x, mousePos.y);
+	}
+	else if (isDragging && hoveredItem == draggedItem) {
+		items[draggedItem].inv_sprite.setColor(sf::Color(255, 255, 255, 255));
+		isDragging = false;
+	}
+
+	heldItemText.update();
 }
 
 void Inventory::handleClick(sf::Event& userInput) {
+	
+	if (userInput.mouseButton.button == sf::Mouse::Left) {
+		if (isOpen) {
+			if (hoveredItem != -1) {
+				//if (!items[hoveredItem].isEmpty()) {
+					draggedItem = hoveredItem;
+					draggedItemSprite = items[draggedItem].inv_sprite;
+					draggedItemSprite.setColor(sf::Color(255, 255, 255, 128));
+				//}
+			}
+		}
+	}
+}
+
+
+
+void Inventory::handleClickRelease(sf::Event& userInput) {
 	if (userInput.mouseButton.button == sf::Mouse::Left) {
 		if (!isOpen) {
 			// select item in toolbar
-			if (hoveredItem > -1)selectedItem = hoveredItem;			
-			
-			if (isInToolbar(selectedItem)) 
-				resetSelected();			
+			if (hoveredItem > -1 && selectedItem != hoveredItem) {
+				selectedItem = hoveredItem;				
+
+				if (isInToolbar(selectedItem))
+					resetSelected();
+			}			
 		}
 		else {
 			//if clicked outside of the inventory
-			if (!pointInRect(mousePosition, backgroundPosition, backgroundSize)) 
-				Close();			
+			if (!pointInRect(mousePosition, backgroundPosition, backgroundSize)) {
+				if (isDragging) StopDragging();
+				Close();
+			}
+
+			//drop dragged item
+			if (isDragging && draggedItem != hoveredItem) {
+				if (hoveredItem != -1) {
+					items[draggedItem].inv_sprite.setColor(sf::Color(255, 255, 255, 255));
+					std::swap(items[draggedItem], items[hoveredItem]);
+					resetSpritePositions();					
+				}
+			}
+			if (draggedItem != -1)StopDragging();
 		}
 	}
 }
@@ -289,6 +375,46 @@ void Inventory::handleKeyPress(sf::Event& userInput) {
 		}
 		resetSelected();
 	}
+	else if(isOpen) {
+		//swap hotkeyed items
+		if (hoveredItem != -1) {
+			switch (userInput.key.code) {
+			case sf::Keyboard::Num1:
+				std::swap(items[0], items[hoveredItem]);
+				break;
+			case sf::Keyboard::Num2:
+				std::swap(items[1], items[hoveredItem]);
+				break;
+			case sf::Keyboard::Num3:
+				std::swap(items[2], items[hoveredItem]);
+				break;
+			case sf::Keyboard::Num4:
+				std::swap(items[3], items[hoveredItem]);
+				break;
+			case sf::Keyboard::Num5:
+				std::swap(items[4], items[hoveredItem]);
+				break;
+			case sf::Keyboard::Num6:
+				std::swap(items[4], items[hoveredItem]);
+				break;
+			case sf::Keyboard::Num7:
+				std::swap(items[5], items[hoveredItem]);
+				break;
+			case sf::Keyboard::Num8:
+				std::swap(items[6], items[hoveredItem]);
+				break;
+			case sf::Keyboard::Num9:
+				std::swap(items[7], items[hoveredItem]);
+				break;
+			case sf::Keyboard::Num0:
+				std::swap(items[8], items[hoveredItem]);
+				break;
+			
+			}
+
+			resetSpritePositions();
+		}
+	}
 }
 
 void Inventory::handleScroll(sf::Event& userInput) {
@@ -306,21 +432,32 @@ void Inventory::Render(sf::RenderWindow& window) {
 	//render inventory background
 	if (isOpen) {		
 		window.draw(background);		
+		window.draw(hotbar_bg);
 		window.draw(bag_bg);
 	}	
-	window.draw(hotbar_bg);
-	if (renderSelection)window.draw(selectionBox);
-	if (selectedItem > -1)window.draw(selected);
+	else {
+		window.draw(hotbar_bg);
+		window.draw(heldItemText.text);
+		if (selectedItem > -1)window.draw(selected);
+	}	
+	if (isHovering)window.draw(selectionIndicator);
 
 	//render items
-	for (auto i : items) {
-		if (isInToolbar(i.id)) 
-			window.draw(i.inv_sprite);		
+	for (size_t i = 0; i < items.size(); i++) {
+		if (isInToolbar(i))
+			window.draw(items[i].inv_sprite);
 		else {
 			if (isOpen) {
-				window.draw(i.inv_sprite);				
+				window.draw(items[i].inv_sprite);
 			}
 		}
+		if (items[i].stackable) {
+			window.draw(items[i].stackInfo);
+		}
+	}
+
+	if (isOpen && isDragging) {
+		window.draw(draggedItemSprite);
 	}
 
 	//render info if needed

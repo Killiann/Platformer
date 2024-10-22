@@ -107,18 +107,22 @@ Game::Game() :
     sf::Sprite swordSprite(inventoryTileMap);
     swordSprite.setTextureRect(sf::IntRect(49, 134, 16, 16));
     i_sword = new Item(1, "Sword", "A basic melee weapon.", swordSprite);
+    i_sword->setStackable(false);
 
     sf::Sprite hoeSprite(inventoryTileMap);
     hoeSprite.setTextureRect(sf::IntRect(1, 134, 16, 16));
     i_hoe = new Item(2, "Hoe", "A tool used for tilling soil.", hoeSprite);
+    i_hoe->setStackable(false);
 
     sf::Sprite pickaxeSprite(inventoryTileMap);
     pickaxeSprite.setTextureRect(sf::IntRect(17, 134, 16, 16));
     i_pickaxe = new Item(3, "Pickaxe", "A tool used for breaking rocks.", pickaxeSprite);
+    i_pickaxe->setStackable(false);
 
     sf::Sprite axeSprite(inventoryTileMap);
     axeSprite.setTextureRect(sf::IntRect(33, 134, 16, 16));
     i_axe = new Item(4, "Axe", "A tool used for cutting wood.", axeSprite);
+    i_axe->setStackable(false);
 
     sf::Sprite potatoSeedSprite(inventoryTileMap);
     potatoSeedSprite.setTextureRect(sf::IntRect(65, 134, 16, 16));
@@ -139,17 +143,21 @@ Game::Game() :
     sf::Sprite handGunSprite(inventoryTileMap);
     handGunSprite.setTextureRect(sf::IntRect(129, 134, 16, 16));
     i_handGun = new Item(9, "Handgun", "Just for fun xx", handGunSprite);
+    i_handGun->setStackable(false);
 
     sf::Sprite machineGunSprite(inventoryTileMap);
     machineGunSprite.setTextureRect(sf::IntRect(145, 134, 16, 16));
-    i_machineGun = new Item(10, "Axe", "For even more fun xx", machineGunSprite);
+    i_machineGun = new Item(10, "Machine Gun", "For even more fun xx", machineGunSprite);
+    i_machineGun->setStackable(false);
 
     //testing
     inventory.addItem(i_axe);
     inventory.addItem(i_hoe);
     inventory.addItem(i_pickaxe);
     inventory.addItem(i_sword);   
-    inventory.addItem(i_potatoSeeds);
+    for (int i = 0; i < 110; i++) {
+        inventory.addItem(i_potatoSeeds);
+    }
     inventory.addItem(i_carrotSeeds);
     inventory.addItem(i_tomatoSeeds);
     inventory.addItem(i_wheatSeeds);
@@ -213,6 +221,9 @@ void Game::processEvents()
         case sf::Event::MouseButtonPressed:
             inventory.handleClick(event);
             break;
+        case sf::Event::MouseButtonReleased:
+            inventory.handleClickRelease(event);
+            break;
         case sf::Event::MouseWheelScrolled:
             inventory.handleScroll(event);
             break;
@@ -274,4 +285,10 @@ Game::~Game() {
     delete(i_hoe);
     delete(i_pickaxe);
     delete(i_axe);
+    delete(i_potatoSeeds);
+    delete(i_carrotSeeds);
+    delete(i_tomatoSeeds);
+    delete(i_wheatSeeds);
+    delete(i_handGun);
+    delete(i_machineGun);
 }

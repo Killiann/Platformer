@@ -29,6 +29,25 @@ public:
 	}
 	inline sf::Vector2f getPosition() { return position; }
 	inline sf::Vector2f getSize() { return size; }
+	inline std::string getString() { return text; }
 	void setLetterSpacing(float spacing);
 	void render(sf::RenderWindow& window);
+};
+
+
+
+//temp as struct, can be refactored to be safer in future
+struct FadingText {
+	sf::Text text;
+	sf::Clock displayClock;
+	sf::Time displayTimer;
+
+	float displayTime = 1.5f;
+	float transparency = 255;
+	float fadeRate = 2.f;
+
+	void init(sf::Font* font, sf::Vector2f& hotBarPos, sf::Vector2i& hotBarSize);
+	void updateText(std::string t);
+	void update();
+	void resetFade();
 };

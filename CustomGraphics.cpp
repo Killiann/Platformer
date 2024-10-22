@@ -34,13 +34,12 @@ void MultiLineText::generate() {
 
 			//if line has become too long, create a new line and continue
 			if (currentLine.getGlobalBounds().width + padding * 2 > width) {
-
 				//remove trailing spaces before text
-				if (prevLine[0] == ' ' && prevLine.size() > 1) prevLine = prevLine.substr(1, prevLine.size() - 1);
-				sf::Text lastLine(prevLine, *font, fontSize);
-				lastLine.setLetterSpacing(letterSpacing);
-				
-				lines.push_back(lastLine);
+				if (prevLine[0] == ' ' && prevLine.size() > 1) prevLine = prevLine.substr(1, prevLine.size() - 1);	
+
+				lines.emplace_back(prevLine, *font, fontSize);
+				lines.back().setLetterSpacing(letterSpacing);
+
 				newLine = newLine.substr(prevLine.size(), newLine.size() - prevLine.size());
 			}
 			prevLine = newLine;
@@ -52,16 +51,14 @@ void MultiLineText::generate() {
 			sf::Text currentLine(newLine, *font, fontSize);
 			currentLine.setLetterSpacing(letterSpacing);
 
-			if (currentLine.getGlobalBounds().width + padding * 2 > width) {
-				sf::Text lastLine(prevLine, *font, fontSize);
-				lastLine.setLetterSpacing(letterSpacing);
+			if (currentLine.getGlobalBounds().width + padding * 2 > width) {								
+				lines.emplace_back(prevLine, *font, fontSize);
+				lines.back().setLetterSpacing(letterSpacing);
 
-				lines.push_back(lastLine);
 				newLine = newLine.substr(prevLine.size(), newLine.size() - prevLine.size());
-
-				sf::Text finalLine(newLine, *font, fontSize);				
-				finalLine.setLetterSpacing(letterSpacing);
-				lines.push_back(finalLine);
+				
+				lines.emplace_back(newLine, *font, fontSize);
+				lines.back().setLetterSpacing(letterSpacing);
 			}
 			else lines.push_back(currentLine);
 		}
@@ -73,7 +70,7 @@ void MultiLineText::resetHeights() {
 	int heightPadding = padding;
 	for (auto &line : lines) {
 		line.setFillColor(sf::Color::Black);
-		line.setPosition(sf::Vector2f(position.x + padding, position.y + heightPadding));
+		line.setPosition(sf::Vector2f((int)(position.x + padding), (int)(position.y + heightPadding)));
 		heightPadding += padding + line.getGlobalBounds().height;
 	}
 	size.y = heightPadding;
@@ -88,4 +85,40 @@ void MultiLineText::render(sf::RenderWindow& window) {
 		window.draw(line);
 	}
 }
+
+
+//********************FADING TEXT************************
+
+void FadingText::init(sf::Font* font, sf::Vector2f& hotBarPos, sf::Vector2i& hotBarSize) {
+	text.setFont(*font);
+	text.setCharacterSize(20.f);
+	text.setFillColor(sf::Color::Black);
+	text.setPosition(sf::Vector2f((int)(hotBarPos.x + (hotBarSize.x / 2)), (int)(hotBarPos.y - 30)));
+}
+
+void FadingText::updateText(std::string t) {
+	text.setString(t);
+	text.setOrigin((int)(text.getGlobalBounds().width / 2), (int)(text.getGlobalBounds().height / 2));
+}
+
+void FadingText::update() {
+	//let text display fade over time
+	if (transparency > 0) {
+		displayTimer += displayClock.restart();
+
+		if (displayTimer.asSeconds() > displayTime) {
+			//update transparency
+			transparency -= fadeRate;
+			if (transparency < 0) transparency = 0;
+			text.setFillColor(sf::Color(0, 0, 0, (int)transparency));
+		}
+	}
+}
+
+void FadingText::resetFade() {
+	transparency = 255;
+	displayTimer = sf::Time::Zero;
+	text.setFillColor(sf::Color(0, 0, 0, (int)transparency));
+}
+
 
